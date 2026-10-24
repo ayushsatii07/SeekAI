@@ -1,0 +1,1 @@
+"""SeekAI CLI package."""
