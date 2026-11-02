@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 async function proxyRequest(request) {
   const backendBase =
     process.env.APP_URL ||
@@ -76,4 +74,3 @@ export async function HEAD(request) {
 export async function OPTIONS(request) {
   return proxyRequest(request);
 }
-
