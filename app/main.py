@@ -81,6 +81,13 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(crawler_router)
 
+    # Also mount routers under /api for path-prefix rewrites and proxy compatibility
+    app.include_router(health_router, prefix="/api")
+    app.include_router(search_router, prefix="/api")
+    app.include_router(history_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api")
+    app.include_router(crawler_router, prefix="/api")
+
     return app
 
 
