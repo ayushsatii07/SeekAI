@@ -82,7 +82,7 @@ graph TD
 
 ```powershell
 # 1. Clone or navigate to the directory
-cd "c:\Users\Ayush Sati\Downloads\SeekAI"
+cd "File Location"
 
 # 2. Create and activate a virtual environment
 python -m venv .venv
