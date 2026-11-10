@@ -17,6 +17,7 @@ class Source(BaseModel):
     citation_number: int
     relevance_score: float = 0.0
     snippet: str = ""
+    image_url: str = ""
 
 
 class SearchMetadata(BaseModel):
@@ -48,5 +49,6 @@ class AnswerResponse(BaseModel):
     query: str
     answer: str
     sources: list[Source] = Field(default_factory=list)
+    images: list[str] = Field(default_factory=list)
     metadata: SearchMetadata = Field(default_factory=SearchMetadata)
     search_id: Optional[int] = None

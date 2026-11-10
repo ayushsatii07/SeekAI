@@ -39,6 +39,7 @@ class TavilySearchProvider(SearchProvider):
     def __init__(self, api_key: Optional[str] = None) -> None:
         self._api_key = api_key or settings.tavily_api_key
         self._client = None  # Lazy initialization
+        self.last_images: list[str] = []
 
     def _get_client(self):
         """Lazily initialize the Tavily client."""
@@ -87,6 +88,7 @@ class TavilySearchProvider(SearchProvider):
             "search_depth": search_depth,
             "include_raw_content": False,
             "include_answer": False,
+            "include_images": True,
         }
 
         if domains:
@@ -111,6 +113,16 @@ class TavilySearchProvider(SearchProvider):
         except Exception as exc:
             logger.error("Tavily search failed: %s", exc)
             raise
+
+        # Extract images if returned by Tavily
+        raw_images = response.get("images", [])
+        collected_images: list[str] = []
+        for img in raw_images:
+            if isinstance(img, str) and img.startswith("http"):
+                collected_images.append(img)
+            elif isinstance(img, dict) and img.get("url"):
+                collected_images.append(img["url"])
+        self.last_images = collected_images
 
         results: list[SearchResult] = []
         for raw in response.get("results", []):

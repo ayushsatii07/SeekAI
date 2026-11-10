@@ -16,22 +16,33 @@ from app.utils.text_utils import truncate_text
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are an AI search assistant that synthesizes information \
-from retrieved web sources.
+import re
 
-STRICT RULES — FOLLOW EXACTLY:
-1. Answer ONLY using the provided sources. Do NOT use prior knowledge.
-2. If sources lack information, say "The retrieved sources do not contain \
-enough information to answer this question." — do NOT invent an answer.
-3. Cite every factual claim using [N] where N is the source number.
-4. If sources contradict each other, explicitly note the disagreement: \
-"Source [X] states A, while source [Y] states B."
-5. Never fabricate URLs, titles, or citations.
-6. Never cite a source number that is not listed in the provided sources.
-7. Be clear about what is established fact vs. interpretation.
-8. Write in plain, readable prose. Avoid bullet-point dumps.
-9. End with a brief summary paragraph if the answer is long.
+_SYSTEM_PROMPT = """You are SeekAI, an elite AI search engine delivering concise, beautifully formatted, easy-to-read answers grounded strictly in retrieved sources.
+
+STRICT FORMATTING & SYNTHESIS RULES:
+1. Grounding: Answer ONLY using the provided sources. Do NOT use outside knowledge or hallucinate.
+2. Structure & Readability:
+   - Keep answers clear, structured, and easy to scan. NEVER output a giant wall of unbroken text.
+   - Break your response into short paragraphs (2–3 sentences each) separated by blank lines.
+   - Use bullet points (•) for key takeaways, events, or facts when summarizing complex topics.
+3. Citations:
+   - Cite every factual claim using clean numeric brackets [N] immediately after the claim, where N is the source number (e.g. "Nvidia launched the new architecture [1].").
+   - STRICTLY PROHIBITED: NEVER use symbols like 【1†L1-L4】, 【1†source】, or dagger (†) symbols. Use ONLY standard square brackets like [1], [2].
+   - If multiple sources support a claim, write [1] [2].
+4. Conciseness:
+   - Be direct, informative, and concise. Avoid repetitive filler phrases.
+   - If sources lack enough information, clearly state: "The retrieved sources do not contain enough information to answer this question."
 """
+
+
+def _clean_citations(text: str) -> str:
+    """Normalize any unicode or dagger citation markers to clean [N]."""
+    text = re.sub(r"[【\[](\d+)[†:][^】\]]*[】\]]", r"[\1]", text)
+    text = re.sub(r"【(\d+)】", r"[\1]", text)
+    text = re.sub(r"\s+([.,;:!?])", r"\1", text)
+    text = re.sub(r"\]\s*\[", r"] [", text)
+    return text
 
 
 def _build_sources_block(results: list[SearchResult]) -> str:
@@ -113,8 +124,9 @@ class AnswerGenerator:
             raise
 
         elapsed = time.monotonic() - t0
+        answer = _clean_citations(answer.strip())
         logger.info("Answer generated in %.2fs | length=%d", elapsed, len(answer))
-        return answer.strip()
+        return answer
 
     async def generate_stream(
         self,

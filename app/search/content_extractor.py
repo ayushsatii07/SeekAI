@@ -51,9 +51,13 @@ class ContentExtractor:
             )
             return result
 
-        text = await self._fetch_and_parse(result.url)
-        if text:
-            result.content = text
+        parsed = await self._fetch_and_parse(result.url)
+        if parsed:
+            text, img_url = parsed
+            if text:
+                result.content = text
+            if img_url and not result.image_url:
+                result.image_url = img_url
         return result
 
     async def extract_many(
@@ -77,8 +81,8 @@ class ContentExtractor:
         tasks = [_bounded(r) for r in results]
         return await asyncio.gather(*tasks)
 
-    async def _fetch_and_parse(self, url: str) -> Optional[str]:
-        """Fetch URL and return extracted text, or None on failure."""
+    async def _fetch_and_parse(self, url: str) -> Optional[tuple[str, str]]:
+        """Fetch URL and return (extracted text, image_url), or None on failure."""
         try:
             async with httpx.AsyncClient(
                 timeout=self.timeout,
@@ -104,12 +108,20 @@ class ContentExtractor:
 
         return None
 
-    def _parse_html(self, html: str) -> Optional[str]:
-        """Parse HTML and return clean readable text."""
+    def _parse_html(self, html: str) -> tuple[str, str]:
+        """Parse HTML and return clean readable text and preview image URL."""
         try:
             soup = BeautifulSoup(html, "lxml")
         except Exception:
             soup = BeautifulSoup(html, "html.parser")
+
+        # Extract og:image or twitter:image before removing noise tags
+        img_url = ""
+        og_tag = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+        if og_tag and og_tag.get("content"):
+            content_val = og_tag["content"].strip()
+            if content_val.startswith("http"):
+                img_url = content_val
 
         # Remove noise elements
         for tag in soup.find_all(_NOISE_TAGS):
@@ -132,4 +144,4 @@ class ContentExtractor:
         if len(text) < 50:
             return None  # Not worth returning minimal content
 
-        return text
+        return (text, img_url)

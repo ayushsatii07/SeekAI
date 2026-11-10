@@ -40,6 +40,9 @@ class SearchResult(BaseModel):
     # Normalized URL for deduplication
     normalized_url: str = ""
 
+    # Optional preview image / og:image
+    image_url: str = ""
+
     model_config = {"populate_by_name": True}
 
 

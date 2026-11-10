@@ -38,9 +38,13 @@ class CitationGenerator:
         Returns:
             List of Source objects, ordered by citation_number.
         """
+        # Normalize any unicode/dagger citations like 【1†L5-L9】 to standard [1]
+        cleaned_answer = re.sub(r"[【\[](\d+)[†:][^】\]]*[】\]]", r"[\1]", answer)
+        cleaned_answer = re.sub(r"【(\d+)】", r"[\1]", cleaned_answer)
+
         # Find all citation numbers referenced in the answer
         cited_numbers = set(
-            int(m) for m in re.findall(r"\[(\d+)\]", answer)
+            int(m) for m in re.findall(r"\[(\d+)\]", cleaned_answer)
         )
 
         sources: list[Source] = []
@@ -57,6 +61,7 @@ class CitationGenerator:
                         citation_number=num,
                         relevance_score=r.final_score,
                         snippet=r.snippet[:200],
+                        image_url=getattr(r, "image_url", ""),
                     )
                 )
 
@@ -73,6 +78,7 @@ class CitationGenerator:
                         citation_number=i,
                         relevance_score=r.final_score,
                         snippet=r.snippet[:200],
+                        image_url=getattr(r, "image_url", ""),
                     )
                 )
 

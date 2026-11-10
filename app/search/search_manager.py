@@ -213,6 +213,7 @@ class SearchManager:
             query=request.query,
             answer=answer_text,
             sources=sources,
+            images=getattr(self._provider, "last_images", []),
             metadata=meta,
             search_id=search_id,
         )
@@ -270,10 +271,16 @@ class SearchManager:
                 "domain": r.domain,
                 "snippet": r.snippet[:250],
                 "score": round(r.score, 3),
+                "image_url": getattr(r, "image_url", ""),
             }
             for i, r in enumerate(top_results)
         ]
         yield {"event": "sources", "data": sources_payload}
+
+        # Emit search visual images if available from search provider
+        found_images = getattr(self._provider, "last_images", [])
+        if found_images:
+            yield {"event": "images", "data": found_images}
 
         answer_text = ""
         sources: list[Source] = []
@@ -307,6 +314,7 @@ class SearchManager:
             query=request.query,
             answer=answer_text,
             sources=sources,
+            images=getattr(self._provider, "last_images", []),
             metadata=meta,
             search_id=search_id,
         )
